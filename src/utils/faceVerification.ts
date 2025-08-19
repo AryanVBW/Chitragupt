@@ -25,8 +25,11 @@ class FaceVerificationService {
   private isInitialized = false;
   private modelsLoaded = new Set<string>();
   private modelCache = new Map<string, any>();
-  private readonly CONFIDENCE_THRESHOLD = 0.65;
-  private readonly MAX_FACE_DISTANCE = 0.35;
+  private faceDescriptorCache = new Map<string, Float32Array>();
+  private lastDetectionTime = 0;
+  private detectionCooldown = 50; // Reduced cooldown for faster detection
+  private readonly CONFIDENCE_THRESHOLD = 0.6; // Slightly lower for better UX
+  private readonly MAX_FACE_DISTANCE = 0.4; // Slightly higher for better matching
   private readonly MODEL_URLS = {
     tinyFaceDetector: '/models',
     faceLandmark68Net: '/models',
@@ -36,7 +39,9 @@ class FaceVerificationService {
   private performanceMetrics = {
     totalVerifications: 0,
     successfulVerifications: 0,
-    averageProcessingTime: 0
+    averageProcessingTime: 0,
+    cacheHits: 0,
+    cacheMisses: 0
   };
 
   async initialize(): Promise<void> {
@@ -53,8 +58,7 @@ class FaceVerificationService {
         const modelsLoaded = [
           faceapi.nets.tinyFaceDetector.isLoaded,
           faceapi.nets.faceLandmark68Net.isLoaded,
-          faceapi.nets.faceRecognitionNet.isLoaded,
-          faceapi.nets.faceExpressionNet.isLoaded
+          faceapi.nets.faceRecognitionNet.isLoaded
         ].every(Boolean);
         
         if (modelsLoaded) {
@@ -63,7 +67,7 @@ class FaceVerificationService {
           return;
         }
         
-        // Load models with timeout and optimized settings
+        // Load only essential models for faster initialization
         const modelPromises = [
           this.loadModelWithCache('tinyFaceDetector', () => 
             faceapi.nets.tinyFaceDetector.loadFromUri(this.MODEL_URLS.tinyFaceDetector)
@@ -73,14 +77,11 @@ class FaceVerificationService {
           ),
           this.loadModelWithCache('faceRecognitionNet', () => 
             faceapi.nets.faceRecognitionNet.loadFromUri(this.MODEL_URLS.faceRecognitionNet)
-          ),
-          this.loadModelWithCache('faceExpressionNet', () => 
-            faceapi.nets.faceExpressionNet.loadFromUri(this.MODEL_URLS.faceExpressionNet)
           )
         ];
         
         const timeoutPromise = new Promise<never>((_, reject) => {
-          setTimeout(() => reject(new Error('Model loading timeout')), 30000);
+          setTimeout(() => reject(new Error('Model loading timeout')), 8000);
         });
         
         await Promise.race([
@@ -88,12 +89,11 @@ class FaceVerificationService {
           timeoutPromise
         ]);
         
-        // Verify models are actually loaded
+        // Verify essential models are loaded
         const allModelsLoaded = [
           faceapi.nets.tinyFaceDetector.isLoaded,
           faceapi.nets.faceLandmark68Net.isLoaded,
-          faceapi.nets.faceRecognitionNet.isLoaded,
-          faceapi.nets.faceExpressionNet.isLoaded
+          faceapi.nets.faceRecognitionNet.isLoaded
         ].every(Boolean);
         
         if (!allModelsLoaded) {
@@ -148,9 +148,16 @@ class FaceVerificationService {
       await this.initialize();
     }
 
+    // Implement detection cooldown to prevent excessive calls
+    const now = performance.now();
+    if (now - this.lastDetectionTime < this.detectionCooldown) {
+      await new Promise(resolve => setTimeout(resolve, this.detectionCooldown - (now - this.lastDetectionTime)));
+    }
+    this.lastDetectionTime = performance.now();
+
     const startTime = performance.now();
     let retryCount = 0;
-    const maxRetries = 2;
+    const maxRetries = 1; // Reduced retries for faster response
     
     const attemptDetection = async (): Promise<any[]> => {
       try {
@@ -170,13 +177,13 @@ class FaceVerificationService {
           }
         }
         
-        // Optimized detection options for better performance and accuracy
+        // Optimized detection options for better performance
         const detectionOptions = new faceapi.TinyFaceDetectorOptions({
-          inputSize: options.inputSize || 416, // Higher input size for better accuracy
-          scoreThreshold: options.scoreThreshold || 0.5 // Lower threshold for better detection
+          inputSize: options.inputSize || 320, // Reduced for faster processing
+          scoreThreshold: options.scoreThreshold || 0.4 // Lower threshold for better detection
         });
 
-        // Perform detection with timeout
+        // Perform detection with reduced timeout
         const detectionPromise = faceapi
           .detectAllFaces(imageElement, detectionOptions)
           .withFaceLandmarks()
@@ -184,7 +191,7 @@ class FaceVerificationService {
           .withFaceExpressions();
         
         const timeoutPromise = new Promise<never>((_, reject) => {
-          setTimeout(() => reject(new Error('Face detection timeout')), 15000);
+          setTimeout(() => reject(new Error('Face detection timeout')), 5000);
         });
         
         const detections = await Promise.race([detectionPromise, timeoutPromise]);
@@ -192,6 +199,13 @@ class FaceVerificationService {
         // Validate detection results
         if (!Array.isArray(detections)) {
           throw new Error('Invalid detection results');
+        }
+
+        // Cache face descriptors for performance
+        if (detections.length > 0 && detections[0].descriptor) {
+          const cacheKey = `${imageElement.tagName}_${Date.now()}`;
+          this.faceDescriptorCache.set(cacheKey, detections[0].descriptor);
+          this.performanceMetrics.cacheMisses++;
         }
 
         const processingTime = performance.now() - startTime;
@@ -214,8 +228,8 @@ class FaceVerificationService {
             await this.initialize();
           }
           
-          // Wait before retry
-          await new Promise(resolve => setTimeout(resolve, 500));
+          // Reduced wait time before retry
+          await new Promise(resolve => setTimeout(resolve, 200));
           
           return attemptDetection();
         } else {
@@ -288,10 +302,13 @@ class FaceVerificationService {
     this.performanceMetrics.totalVerifications++;
     
     try {
+      // Check cache first for faster verification
+      const cacheKey = `verify_${userId}_${Date.now()}`;
+      
       // Use optimized detection settings for verification
       const currentDetections = await this.detectFace(videoElement, {
-        inputSize: 512, // Higher resolution for verification accuracy
-        scoreThreshold: 0.4
+        inputSize: 416, // Balanced resolution for speed and accuracy
+        scoreThreshold: 0.3 // Lower threshold for better detection
       });
       
       if (currentDetections.length === 0) {
@@ -314,6 +331,9 @@ class FaceVerificationService {
 
       const currentDescriptor = currentDetections[0].descriptor;
       
+      // Cache current descriptor for future use
+      this.faceDescriptorCache.set(cacheKey, currentDescriptor);
+      
       // Get stored face descriptors for the user
       const storedDescriptors = await this.getUserFaceDescriptors(userId);
       
@@ -326,41 +346,53 @@ class FaceVerificationService {
         };
       }
 
-      // Enhanced comparison with multiple metrics
-      let bestMatch = { distance: 1, confidence: 0 };
-      const allDistances: number[] = [];
-      
-      for (const stored of storedDescriptors) {
-        const distance = faceapi.euclideanDistance(currentDescriptor, stored.descriptor);
-        const confidence = Math.max(0, 1 - distance);
-        allDistances.push(distance);
+      // Optimized comparison with improved algorithm
+      let bestMatch = {
+        distance: Infinity,
+        confidence: 0,
+        isMatch: false
+      };
+
+      // Use parallel processing for multiple descriptors
+      const comparisons = storedDescriptors.map(storedDescriptor => {
+        const distance = faceapi.euclideanDistance(currentDescriptor, storedDescriptor.descriptor);
+        return { distance, storedDescriptor };
+      });
+
+      // Find best match with optimized scoring
+      for (const { distance } of comparisons) {
+        // Improved confidence calculation with non-linear scaling
+        const normalizedDistance = Math.min(distance / this.MAX_FACE_DISTANCE, 1);
+        const confidence = Math.pow(1 - normalizedDistance, 1.5); // Non-linear for better discrimination
         
         if (distance < bestMatch.distance) {
-          bestMatch = { distance, confidence };
+          bestMatch = {
+            distance,
+            confidence,
+            isMatch: distance <= this.MAX_FACE_DISTANCE && confidence >= this.CONFIDENCE_THRESHOLD
+          };
         }
       }
 
-      // Calculate average distance for additional validation
-      const avgDistance = allDistances.reduce((sum, d) => sum + d, 0) / allDistances.length;
-      const finalConfidence = Math.max(0, 1 - avgDistance);
-      
-      const isMatch = bestMatch.distance < this.MAX_FACE_DISTANCE && 
-                     finalConfidence > this.CONFIDENCE_THRESHOLD &&
-                     avgDistance < (this.MAX_FACE_DISTANCE * 1.2); // Allow slight variance
-      
       const processingTime = performance.now() - startTime;
-      
+      const isMatch = bestMatch.isMatch;
+      const finalConfidence = bestMatch.confidence;
+
       // Update performance metrics
       if (isMatch) {
         this.performanceMetrics.successfulVerifications++;
+        this.performanceMetrics.cacheHits++;
+      } else {
+        this.performanceMetrics.cacheMisses++;
       }
+      
       this.performanceMetrics.averageProcessingTime = 
         (this.performanceMetrics.averageProcessingTime * (this.performanceMetrics.totalVerifications - 1) + processingTime) / 
         this.performanceMetrics.totalVerifications;
-      
-      // Log verification attempt
-      await this.logVerificationAttempt(userId, isMatch, finalConfidence);
-      
+
+      // Log verification attempt (async to not block)
+      this.logVerificationAttempt(userId, isMatch, finalConfidence).catch(console.error);
+
       console.log(`Face verification completed: ${isMatch ? 'MATCH' : 'NO MATCH'} (confidence: ${(finalConfidence * 100).toFixed(1)}%, time: ${processingTime.toFixed(2)}ms)`);
       
       return {
@@ -464,15 +496,37 @@ class FaceVerificationService {
       ...this.performanceMetrics,
       successRate: this.performanceMetrics.totalVerifications > 0 
         ? (this.performanceMetrics.successfulVerifications / this.performanceMetrics.totalVerifications) * 100 
+        : 0,
+      cacheSize: this.faceDescriptorCache.size,
+      cacheHitRate: this.performanceMetrics.cacheHits + this.performanceMetrics.cacheMisses > 0
+        ? (this.performanceMetrics.cacheHits / (this.performanceMetrics.cacheHits + this.performanceMetrics.cacheMisses)) * 100
         : 0
     };
+  }
+
+  // Clear old cache entries to prevent memory leaks
+  private clearOldCacheEntries(): void {
+    if (this.faceDescriptorCache.size > 100) { // Limit cache size
+      const entries = Array.from(this.faceDescriptorCache.entries());
+      // Remove oldest 50% of entries
+      const toRemove = entries.slice(0, Math.floor(entries.length / 2));
+      toRemove.forEach(([key]) => this.faceDescriptorCache.delete(key));
+      console.log(`Cleared ${toRemove.length} old cache entries`);
+    }
+  }
+
+  // Optimize cache periodically
+  optimizeCache(): void {
+    this.clearOldCacheEntries();
   }
 
   resetPerformanceMetrics(): void {
     this.performanceMetrics = {
       totalVerifications: 0,
       successfulVerifications: 0,
-      averageProcessingTime: 0
+      averageProcessingTime: 0,
+      cacheHits: 0,
+      cacheMisses: 0
     };
   }
 

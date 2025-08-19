@@ -1,0 +1,19 @@
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="chatGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:rgba(59,130,246,0.8);stop-opacity:1" />
+      <stop offset="100%" style="stop-color:rgba(147,51,234,0.8);stop-opacity:1" />
+    </linearGradient>
+    <filter id="blur" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="0.5"/>
+    </filter>
+  </defs>
+  <path d="M20 2H4C2.9 2 2 2.9 2 4V16C2 17.1 2.9 18 4 18H6L10 22L14 18H20C21.1 18 22 17.1 22 16V4C22 2.9 21.1 2 20 2Z" 
+        fill="url(#chatGradient)" 
+        stroke="rgba(255,255,255,0.3)" 
+        stroke-width="1" 
+        filter="url(#blur)"/>
+  <circle cx="8" cy="9" r="1.5" fill="rgba(255,255,255,0.9)"/>
+  <circle cx="12" cy="9" r="1.5" fill="rgba(255,255,255,0.9)"/>
+  <circle cx="16" cy="9" r="1.5" fill="rgba(255,255,255,0.9)"/>
+</svg>

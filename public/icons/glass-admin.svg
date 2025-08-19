@@ -1,0 +1,22 @@
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="adminGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:rgba(147,51,234,0.8);stop-opacity:1" />
+      <stop offset="100%" style="stop-color:rgba(236,72,153,0.8);stop-opacity:1" />
+    </linearGradient>
+    <filter id="adminBlur" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="0.5"/>
+    </filter>
+  </defs>
+  <path d="M12 2L13.09 8.26L20 9L13.09 9.74L12 16L10.91 9.74L4 9L10.91 8.26L12 2Z" 
+        fill="url(#adminGradient)" 
+        stroke="rgba(255,255,255,0.4)" 
+        stroke-width="1" 
+        filter="url(#adminBlur)"/>
+  <circle cx="12" cy="12" r="8" 
+          fill="none" 
+          stroke="url(#adminGradient)" 
+          stroke-width="1.5" 
+          stroke-dasharray="2,2" 
+          opacity="0.6"/>
+</svg>

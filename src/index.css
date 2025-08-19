@@ -31,16 +31,45 @@
     animation-delay: 4s;
   }
 
+  /* Enhanced Glassmorphism Effects */
   .glass {
-    background: rgba(255, 255, 255, 0.05);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.125);
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
   }
 
   .glass-dark {
-    background: rgba(0, 0, 0, 0.2);
-    backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(0, 0, 0, 0.25);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.125);
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+  }
+
+  .glass-light {
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(12px) saturate(200%);
+    -webkit-backdrop-filter: blur(12px) saturate(200%);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 4px 16px 0 rgba(31, 38, 135, 0.2);
+  }
+
+  .glass-card {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.125);
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+  }
+
+  .glass-sidebar {
+    background: rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    border-right: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 4px 0 24px 0 rgba(0, 0, 0, 0.3);
   }
 
   .neon-glow {
@@ -71,32 +100,119 @@
 }
 
 @layer components {
+  /* Enhanced Glassmorphism Buttons */
   .btn-glass {
-    @apply glass hover:bg-white/10 transition-all duration-300 transform hover:scale-105;
+    @apply glass hover:bg-white/15 transition-all duration-300 transform hover:scale-105 hover:shadow-lg;
   }
 
-  .btn-primary {
-    @apply bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold py-3 px-6 rounded-lg transform hover:scale-105 transition-all duration-300 shadow-lg shadow-blue-500/25;
+  .btn-glass-primary {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.3), rgba(147, 51, 234, 0.3));
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    @apply border border-blue-400/30 text-white font-semibold py-3 px-6 rounded-xl transform hover:scale-105 transition-all duration-300 shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40;
   }
 
-  .btn-secondary {
-    @apply bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold py-3 px-6 rounded-lg transform hover:scale-105 transition-all duration-300 shadow-lg shadow-purple-500/25;
+  .btn-glass-secondary {
+    background: linear-gradient(135deg, rgba(147, 51, 234, 0.3), rgba(236, 72, 153, 0.3));
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    @apply border border-purple-400/30 text-white font-semibold py-3 px-6 rounded-xl transform hover:scale-105 transition-all duration-300 shadow-lg shadow-purple-500/25 hover:shadow-purple-500/40;
   }
 
+  .btn-glass-danger {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.3), rgba(220, 38, 127, 0.3));
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    @apply border border-red-400/30 text-white font-semibold py-3 px-6 rounded-xl transform hover:scale-105 transition-all duration-300 shadow-lg shadow-red-500/25 hover:shadow-red-500/40;
+  }
+
+  .btn-glass-success {
+    background: linear-gradient(135deg, rgba(34, 197, 94, 0.3), rgba(16, 185, 129, 0.3));
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    @apply border border-green-400/30 text-white font-semibold py-3 px-6 rounded-xl transform hover:scale-105 transition-all duration-300 shadow-lg shadow-green-500/25 hover:shadow-green-500/40;
+  }
+
+  /* Enhanced Cards */
   .card-glass {
-    @apply glass-dark rounded-2xl p-6 shadow-2xl;
+    @apply glass-card rounded-2xl p-6 shadow-2xl hover:shadow-xl transition-all duration-300;
   }
 
+  .card-glass-hover {
+    @apply glass-card rounded-2xl p-6 shadow-2xl hover:shadow-xl hover:scale-[1.02] transition-all duration-300 cursor-pointer;
+  }
+
+  .message-glass {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.06));
+    backdrop-filter: blur(12px) saturate(180%);
+    -webkit-backdrop-filter: blur(12px) saturate(180%);
+    @apply border border-white/10 rounded-2xl p-4 shadow-lg;
+  }
+
+  .sidebar-glass {
+    @apply glass-sidebar;
+  }
+
+  /* Enhanced Inputs */
   .input-glass {
-    @apply bg-white/5 border border-white/10 rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-transparent text-white placeholder-gray-400 transition-all duration-300;
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(12px) saturate(180%);
+    -webkit-backdrop-filter: blur(12px) saturate(180%);
+    @apply border border-white/20 rounded-xl focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400/50 text-white placeholder-gray-400 transition-all duration-300 px-4 py-3;
   }
 
+  .input-glass:focus {
+    background: rgba(255, 255, 255, 0.12);
+    box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.5), 0 4px 16px 0 rgba(59, 130, 246, 0.2);
+  }
+
+  /* Enhanced Navigation */
   .nav-item {
-    @apply p-2 rounded-lg transition-all duration-300 hover:bg-white/5 text-gray-400 hover:text-white;
+    @apply p-3 rounded-xl transition-all duration-300 hover:bg-white/10 text-gray-400 hover:text-white relative overflow-hidden;
+  }
+
+  .nav-item::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+    transition: left 0.5s;
+  }
+
+  .nav-item:hover::before {
+    left: 100%;
   }
 
   .nav-item-active {
-    @apply bg-blue-500/20 text-blue-400 shadow-lg shadow-blue-500/20;
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(147, 51, 234, 0.2));
+    backdrop-filter: blur(12px) saturate(180%);
+    -webkit-backdrop-filter: blur(12px) saturate(180%);
+    @apply text-blue-400 shadow-lg shadow-blue-500/20 border border-blue-400/30;
+  }
+
+  /* Chat specific components */
+  .chat-header-glass {
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    @apply border-b border-white/10;
+  }
+
+  .contact-card-glass {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    @apply border border-white/10 rounded-xl transition-all duration-300 hover:bg-white/15 hover:border-white/20;
+  }
+
+  .contact-card-active {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(147, 51, 234, 0.15));
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    @apply border border-blue-400/30 shadow-lg shadow-blue-500/20;
   }
 }
 

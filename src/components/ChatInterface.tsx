@@ -179,9 +179,14 @@ const ChatInterface: React.FC = () => {
   };
 
   return (
-    <div className="h-screen flex bg-gradient-to-br from-gray-900 via-black to-gray-900">
+    <div className="h-screen flex bg-gradient-to-br from-gray-900 via-black to-gray-900 bg-mesh relative overflow-hidden">
+      {/* Background Elements */}
+      <div className="absolute inset-0 bg-gradient-to-br from-blue-900/10 via-purple-900/10 to-pink-900/10"></div>
+      <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-500/5 rounded-full blur-3xl"></div>
+      <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-500/5 rounded-full blur-3xl"></div>
+      
       {/* Contacts Sidebar */}
-      <div className="w-80 bg-black/20 backdrop-blur-lg border-r border-white/10">
+      <div className="w-80 sidebar-glass relative z-10">
         <div className="p-6">
           <h2 className="text-xl font-bold text-white mb-6">Secure Contacts</h2>
           
@@ -190,10 +195,10 @@ const ChatInterface: React.FC = () => {
               <button
                 key={contact.id}
                 onClick={() => setSelectedContact(contact.id)}
-                className={`w-full p-4 rounded-lg text-left transition-all duration-300 ${
+                className={`contact-card-glass cursor-pointer transition-all duration-300 ${
                   selectedContact === contact.id
-                    ? 'bg-blue-500/20 border border-blue-500/30 shadow-lg shadow-blue-500/20'
-                    : 'bg-white/5 hover:bg-white/10 border border-white/10'
+                    ? 'contact-card-active'
+                    : 'hover:bg-white/10'
                 }`}
               >
                 <div className="flex items-center space-x-3">
@@ -219,7 +224,7 @@ const ChatInterface: React.FC = () => {
         {selectedContact ? (
           <>
             {/* Chat Header */}
-            <div className="bg-black/20 backdrop-blur-lg border-b border-white/10 p-6">
+            <div className="chat-header-glass p-6 relative z-10">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-4">
                   <div className="text-2xl">{getContactAvatar(selectedContact)}</div>
@@ -271,11 +276,11 @@ const ChatInterface: React.FC = () => {
                   className={`flex ${message.sender === user?.id ? 'justify-end' : 'justify-start'}`}
                 >
                   <div
-                    className={`max-w-xs lg:max-w-md px-4 py-3 rounded-2xl ${
+                    className={`message-glass max-w-xs lg:max-w-md px-4 py-3 rounded-2xl ${
                       message.sender === user?.id
-                        ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white'
+                        ? 'ml-auto border-blue-400/30 bg-gradient-to-r from-blue-500/20 to-purple-500/20 text-white'
                         : message.isRead
-                        ? 'bg-white/10 text-white border border-white/20'
+                        ? 'border-white/20 bg-white/10 text-white'
                         : 'bg-red-500/10 border border-red-500/20 text-red-300'
                     }`}
                   >
@@ -294,7 +299,7 @@ const ChatInterface: React.FC = () => {
                         <p className="text-xs text-gray-400 mb-2">Face verification required</p>
                         <button
                           onClick={() => handleMessageRead(message)}
-                          className="bg-blue-500/20 text-blue-400 px-3 py-1 rounded text-xs hover:bg-blue-500/30 transition-colors duration-300"
+                          className="btn-glass-success px-3 py-1 text-xs"
                         >
                           Verify & Read
                         </button>
@@ -311,7 +316,7 @@ const ChatInterface: React.FC = () => {
             </div>
 
             {/* Message Input */}
-            <div className="bg-black/20 backdrop-blur-lg border-t border-white/10 p-6">
+            <div className="glass-card border-t border-white/10 p-6 relative z-10">
               <div className="flex items-center space-x-4">
                 <div className="flex-1 relative">
                   <input
@@ -320,7 +325,7 @@ const ChatInterface: React.FC = () => {
                     onChange={(e) => setInputMessage(e.target.value)}
                     onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
                     placeholder="Type a secure message..."
-                    className="w-full px-4 py-3 pr-12 bg-white/5 border border-white/10 rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-transparent text-white placeholder-gray-400 transition-all duration-300"
+                    className="input-glass w-full px-4 py-3 pr-12 text-white placeholder-gray-400"
                   />
                   <Lock className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
                 </div>
@@ -328,7 +333,7 @@ const ChatInterface: React.FC = () => {
                 <button
                   onClick={sendMessage}
                   disabled={!inputMessage.trim()}
-                  className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-3 rounded-lg hover:from-blue-700 hover:to-purple-700 transform hover:scale-105 transition-all duration-300 shadow-lg shadow-blue-500/25 disabled:opacity-50 disabled:transform-none"
+                  className="btn-glass-primary p-3 disabled:opacity-50 disabled:transform-none"
                 >
                   <Send className="w-5 h-5" />
                 </button>
@@ -387,7 +392,7 @@ const ChatInterface: React.FC = () => {
             <div className="flex space-x-3">
               <button
                 onClick={toggleLiveCamera}
-                className="flex-1 bg-red-500/20 text-red-400 py-2 px-4 rounded-lg hover:bg-red-500/30 transition-colors duration-300"
+                className="flex-1 btn-glass-danger py-2 px-4"
               >
                 Stop Sharing
               </button>

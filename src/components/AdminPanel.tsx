@@ -1,6 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Bell, Camera, Shield, Activity, Settings, Send, Trash2, UserPlus, CheckCircle, XCircle, UserX } from 'lucide-react';
+import { Users, Bell, Camera, Shield, Activity, Settings, Send, Trash2, UserPlus, CheckCircle, XCircle, UserX, BarChart3, Eye, Database } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import SystemSettings from './SystemSettings';
+import SecurityEventsMonitor from './SecurityEventsMonitor';
+import ActiveUsersDashboard from './ActiveUsersDashboard';
+import SystemStatistics from './SystemStatistics';
+import SecuritySettings from './SecuritySettings';
+import SecurityStatusManager from './SecurityStatusManager';
+import NotificationSettings from './NotificationSettings';
 
 interface User {
   id: string;
@@ -20,7 +27,7 @@ interface NotificationData {
 }
 
 const AdminPanel: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'users' | 'notifications' | 'monitoring' | 'settings'>('users');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'users' | 'security' | 'events' | 'statistics' | 'notifications' | 'settings' | 'legacy-users' | 'monitoring' | 'legacy-monitoring'>('dashboard');
   const [selectedUser, setSelectedUser] = useState<string>('');
   const [showCameraFeed, setShowCameraFeed] = useState(false);
   const [showCreateUser, setShowCreateUser] = useState(false);
@@ -223,35 +230,47 @@ const AdminPanel: React.FC = () => {
   };
 
   const tabs = [
-    { id: 'users', label: 'User Management', icon: Users },
+    { id: 'dashboard', label: 'Dashboard', icon: Activity },
+    { id: 'users', label: 'Active Users', icon: Users },
+    { id: 'security', label: 'Security', icon: Shield },
+    { id: 'events', label: 'Security Events', icon: Eye },
+    { id: 'statistics', label: 'Statistics', icon: BarChart3 },
     { id: 'notifications', label: 'Notifications', icon: Bell },
-    { id: 'monitoring', label: 'Live Monitoring', icon: Activity },
     { id: 'settings', label: 'Settings', icon: Settings }
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 text-white p-6">
-      <div className="max-w-7xl mx-auto">
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 bg-mesh relative overflow-hidden p-6">
+      {/* Background Elements */}
+      <div className="absolute inset-0 bg-gradient-to-br from-purple-900/10 via-blue-900/10 to-pink-900/10"></div>
+      <div className="absolute top-1/3 left-1/3 w-96 h-96 bg-purple-500/5 rounded-full blur-3xl"></div>
+      <div className="absolute bottom-1/3 right-1/3 w-96 h-96 bg-blue-500/5 rounded-full blur-3xl"></div>
+      <div className="max-w-7xl mx-auto relative z-10">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent mb-2">
-            Admin Control Panel
-          </h1>
-          <p className="text-gray-400">Manage users, security, and system monitoring</p>
+        <div className="glass-card mb-8 p-6">
+          <div className="flex items-center space-x-4">
+            <img src="/icons/glass-admin.svg" alt="Admin" className="w-8 h-8" />
+            <div>
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent mb-2">
+                Admin Control Panel
+              </h1>
+              <p className="text-gray-400">Manage users, security, and system monitoring</p>
+            </div>
+          </div>
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex space-x-1 bg-white/5 rounded-lg p-1 mb-8">
+        <div className="glass-card flex space-x-1 rounded-lg p-1 mb-8">
           {tabs.map(tab => {
             const Icon = tab.icon;
             return (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as any)}
-                className={`flex-1 flex items-center justify-center space-x-2 py-3 px-4 rounded-md transition-all duration-300 ${
+                className={`nav-item flex-1 flex items-center justify-center space-x-2 py-3 px-4 transition-all duration-300 ${
                   activeTab === tab.id
-                    ? 'bg-purple-500/20 text-purple-400 shadow-lg shadow-purple-500/20'
-                    : 'text-gray-400 hover:text-white hover:bg-white/5'
+                    ? 'nav-item-active'
+                    : 'text-gray-400 hover:text-white'
                 }`}
               >
                 <Icon className="w-5 h-5" />
@@ -262,10 +281,53 @@ const AdminPanel: React.FC = () => {
         </div>
 
         {/* Tab Content */}
+        {activeTab === 'dashboard' && (
+          <div className="space-y-6">
+            <SecurityStatusManager />
+          </div>
+        )}
+
         {activeTab === 'users' && (
+          <div className="space-y-6">
+            <ActiveUsersDashboard />
+          </div>
+        )}
+
+        {activeTab === 'security' && (
+          <div className="space-y-6">
+            <SecuritySettings />
+          </div>
+        )}
+
+        {activeTab === 'events' && (
+          <div className="space-y-6">
+            <SecurityEventsMonitor />
+          </div>
+        )}
+
+        {activeTab === 'statistics' && (
+          <div className="space-y-6">
+            <SystemStatistics />
+          </div>
+        )}
+
+        {activeTab === 'notifications' && (
+          <div className="space-y-6">
+            <NotificationSettings />
+          </div>
+        )}
+
+        {activeTab === 'settings' && (
+          <div className="space-y-6">
+            <SystemSettings />
+          </div>
+        )}
+
+        {/* Legacy User Management - keeping for backward compatibility */}
+        {activeTab === 'legacy-users' && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Users List */}
-            <div className="lg:col-span-2 bg-black/20 backdrop-blur-lg rounded-2xl border border-white/10 p-6">
+            <div className="lg:col-span-2 card-glass-hover p-6">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-bold text-white">Active Users</h2>
                 <div className="flex items-center space-x-3">
@@ -298,7 +360,7 @@ const AdminPanel: React.FC = () => {
                   </div>
                 ) : (
                   users.map(user => (
-                  <div key={user.id} className="bg-white/5 rounded-lg p-4 border border-white/10">
+                  <div key={user.id} className="card-glass p-4 hover:bg-white/10 transition-all duration-300">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-4">
                         <div className="relative">
@@ -342,7 +404,7 @@ const AdminPanel: React.FC = () => {
                         {user.verificationStatus === 'pending' && (
                           <button
                             onClick={() => verifyUser(user.id)}
-                            className="p-2 bg-green-500/20 text-green-400 rounded-lg hover:bg-green-500/30 transition-colors duration-300"
+                            className="btn-glass-success p-2"
                             title="Verify user"
                           >
                             <CheckCircle className="w-4 h-4" />
@@ -351,7 +413,7 @@ const AdminPanel: React.FC = () => {
                         {user.verificationStatus === 'verified' && (
                           <button
                             onClick={() => unverifyUser(user.id)}
-                            className="p-2 bg-yellow-500/20 text-yellow-400 rounded-lg hover:bg-yellow-500/30 transition-colors duration-300"
+                            className="btn-glass-secondary p-2 text-yellow-400 border-yellow-500/30"
                             title="Unverify user"
                           >
                             <XCircle className="w-4 h-4" />
@@ -359,7 +421,7 @@ const AdminPanel: React.FC = () => {
                         )}
                         <button
                           onClick={() => deleteUser(user.id)}
-                          className="p-2 bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500/30 transition-colors duration-300"
+                          className="btn-glass-danger p-2"
                           title="Delete user"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -518,7 +580,7 @@ const AdminPanel: React.FC = () => {
           </div>
         )}
 
-        {activeTab === 'monitoring' && (
+        {activeTab === 'legacy-monitoring' && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="bg-black/20 backdrop-blur-lg rounded-2xl border border-white/10 p-6">
               <h2 className="text-xl font-bold text-white mb-6">Live Activity Monitor</h2>
@@ -623,7 +685,7 @@ const AdminPanel: React.FC = () => {
         {/* Create User Modal */}
         {showCreateUser && (
           <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-black/20 backdrop-blur-lg rounded-2xl border border-white/10 p-6 max-w-md w-full">
+            <div className="card-glass-hover p-6 max-w-md w-full">
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-xl font-bold text-white">Create New User</h3>
                 <button
@@ -641,7 +703,7 @@ const AdminPanel: React.FC = () => {
                     type="text"
                     value={newUser.name}
                     onChange={(e) => setNewUser(prev => ({ ...prev, name: e.target.value }))}
-                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg focus:ring-2 focus:ring-green-400 focus:border-transparent text-white placeholder-gray-400"
+                    className="input-glass w-full px-4 py-3 text-white placeholder-gray-400"
                     placeholder="Enter full name"
                   />
                 </div>
@@ -652,7 +714,7 @@ const AdminPanel: React.FC = () => {
                     type="email"
                     value={newUser.email}
                     onChange={(e) => setNewUser(prev => ({ ...prev, email: e.target.value }))}
-                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg focus:ring-2 focus:ring-green-400 focus:border-transparent text-white placeholder-gray-400"
+                    className="input-glass w-full px-4 py-3 text-white placeholder-gray-400"
                     placeholder="Enter email address"
                   />
                 </div>
@@ -663,7 +725,7 @@ const AdminPanel: React.FC = () => {
                     type="password"
                     value={newUser.password}
                     onChange={(e) => setNewUser(prev => ({ ...prev, password: e.target.value }))}
-                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg focus:ring-2 focus:ring-green-400 focus:border-transparent text-white placeholder-gray-400"
+                    className="input-glass w-full px-4 py-3 text-white placeholder-gray-400"
                     placeholder="Enter password"
                   />
                 </div>
@@ -678,7 +740,7 @@ const AdminPanel: React.FC = () => {
                 </button>
                 <button
                   onClick={createUser}
-                  className="flex-1 bg-green-500/20 text-green-400 py-2 px-4 rounded-lg hover:bg-green-500/30 transition-colors duration-300"
+                  className="btn-glass-success flex-1 py-2 px-4"
                 >
                   Create User
                 </button>
