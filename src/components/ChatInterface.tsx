@@ -1,0 +1,319 @@
+import React, { useState, useRef, useEffect } from 'react';
+import { Send, Lock, Camera, Shield, Eye, UserCheck } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
+import FaceVerificationModal from './FaceVerificationModal';
+
+interface Message {
+  id: string;
+  content: string;
+  sender: string;
+  timestamp: Date;
+  isEncrypted: boolean;
+  requiresFaceVerification: boolean;
+  isRead: boolean;
+  senderApproval?: boolean;
+}
+
+const ChatInterface: React.FC = () => {
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [inputMessage, setInputMessage] = useState('');
+  const [selectedContact, setSelectedContact] = useState<string>('');
+  const [showFaceVerification, setShowFaceVerification] = useState(false);
+  const [pendingMessage, setPendingMessage] = useState<Message | null>(null);
+  const [isLiveCameraActive, setIsLiveCameraActive] = useState(false);
+  const { user, verifyFace } = useAuth();
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const contacts = [
+    { id: 'contact1', name: 'Alice Johnson', status: 'online', avatar: '👩‍💼' },
+    { id: 'contact2', name: 'Bob Smith', status: 'away', avatar: '👨‍💻' },
+    { id: 'contact3', name: 'Carol Davis', status: 'online', avatar: '👩‍🔬' }
+  ];
+
+  useEffect(() => {
+    // Auto-scroll to bottom when new messages arrive
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  useEffect(() => {
+    // Simulate receiving encrypted messages
+    const demoMessages: Message[] = [
+      {
+        id: '1',
+        content: 'Hey! How are you doing?',
+        sender: 'contact1',
+        timestamp: new Date(Date.now() - 3600000),
+        isEncrypted: true,
+        requiresFaceVerification: true,
+        isRead: false
+      },
+      {
+        id: '2',
+        content: 'The project documents are ready for review.',
+        sender: 'contact2',
+        timestamp: new Date(Date.now() - 1800000),
+        isEncrypted: true,
+        requiresFaceVerification: true,
+        isRead: false
+      }
+    ];
+    setMessages(demoMessages);
+  }, []);
+
+  const sendMessage = async () => {
+    if (!inputMessage.trim() || !selectedContact) return;
+
+    const newMessage: Message = {
+      id: Date.now().toString(),
+      content: inputMessage,
+      sender: user?.id || 'current-user',
+      timestamp: new Date(),
+      isEncrypted: true,
+      requiresFaceVerification: true,
+      isRead: false
+    };
+
+    setMessages(prev => [...prev, newMessage]);
+    setInputMessage('');
+
+    // Simulate notification to receiver
+    if ('Notification' in window && Notification.permission === 'granted') {
+      new Notification('New Secure Message', {
+        body: 'You have received a new encrypted message',
+        icon: '/favicon.ico'
+      });
+    }
+  };
+
+  const handleMessageRead = (message: Message) => {
+    if (message.requiresFaceVerification && !message.isRead) {
+      setPendingMessage(message);
+      setShowFaceVerification(true);
+    }
+  };
+
+  const handleFaceVerificationSuccess = async (faceData: string) => {
+    if (pendingMessage) {
+      // Mark message as read
+      setMessages(prev => 
+        prev.map(msg => 
+          msg.id === pendingMessage.id 
+            ? { ...msg, isRead: true, senderApproval: true }
+            : msg
+        )
+      );
+      setPendingMessage(null);
+    }
+    setShowFaceVerification(false);
+  };
+
+  const toggleLiveCamera = () => {
+    setIsLiveCameraActive(!isLiveCameraActive);
+  };
+
+  const getContactName = (contactId: string) => {
+    const contact = contacts.find(c => c.id === contactId);
+    return contact?.name || 'Unknown';
+  };
+
+  const getContactAvatar = (contactId: string) => {
+    const contact = contacts.find(c => c.id === contactId);
+    return contact?.avatar || '👤';
+  };
+
+  return (
+    <div className="h-screen flex bg-gradient-to-br from-gray-900 via-black to-gray-900">
+      {/* Contacts Sidebar */}
+      <div className="w-80 bg-black/20 backdrop-blur-lg border-r border-white/10">
+        <div className="p-6">
+          <h2 className="text-xl font-bold text-white mb-6">Secure Contacts</h2>
+          
+          <div className="space-y-3">
+            {contacts.map(contact => (
+              <button
+                key={contact.id}
+                onClick={() => setSelectedContact(contact.id)}
+                className={`w-full p-4 rounded-lg text-left transition-all duration-300 ${
+                  selectedContact === contact.id
+                    ? 'bg-blue-500/20 border border-blue-500/30 shadow-lg shadow-blue-500/20'
+                    : 'bg-white/5 hover:bg-white/10 border border-white/10'
+                }`}
+              >
+                <div className="flex items-center space-x-3">
+                  <div className="relative">
+                    <div className="text-2xl">{contact.avatar}</div>
+                    <div className={`absolute -bottom-1 -right-1 w-3 h-3 rounded-full border-2 border-gray-900 ${
+                      contact.status === 'online' ? 'bg-green-400' : 'bg-yellow-400'
+                    }`}></div>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-white">{contact.name}</p>
+                    <p className="text-sm text-gray-400 capitalize">{contact.status}</p>
+                  </div>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Main Chat Area */}
+      <div className="flex-1 flex flex-col">
+        {selectedContact ? (
+          <>
+            {/* Chat Header */}
+            <div className="bg-black/20 backdrop-blur-lg border-b border-white/10 p-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-4">
+                  <div className="text-2xl">{getContactAvatar(selectedContact)}</div>
+                  <div>
+                    <h3 className="font-bold text-white">{getContactName(selectedContact)}</h3>
+                    <p className="text-sm text-gray-400 flex items-center">
+                      <Shield className="w-3 h-3 mr-1" />
+                      End-to-end encrypted
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="flex items-center space-x-3">
+                  <button
+                    onClick={toggleLiveCamera}
+                    className={`p-2 rounded-lg transition-all duration-300 ${
+                      isLiveCameraActive
+                        ? 'bg-red-500/20 text-red-400 shadow-lg shadow-red-500/20'
+                        : 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30'
+                    }`}
+                  >
+                    <Camera className="w-5 h-5" />
+                  </button>
+                  <div className="text-green-400">
+                    <UserCheck className="w-5 h-5" />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Messages Area */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-4">
+              {messages.filter(msg => msg.sender === selectedContact || msg.sender === user?.id).map(message => (
+                <div
+                  key={message.id}
+                  className={`flex ${message.sender === user?.id ? 'justify-end' : 'justify-start'}`}
+                >
+                  <div
+                    className={`max-w-xs lg:max-w-md px-4 py-3 rounded-2xl ${
+                      message.sender === user?.id
+                        ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white'
+                        : message.isRead
+                        ? 'bg-white/10 text-white border border-white/20'
+                        : 'bg-red-500/10 border border-red-500/20 text-red-300'
+                    }`}
+                  >
+                    <div className="flex items-center space-x-2 mb-2">
+                      {message.isEncrypted && <Lock className="w-3 h-3" />}
+                      {message.requiresFaceVerification && !message.isRead && (
+                        <Eye className="w-3 h-3 text-yellow-400" />
+                      )}
+                    </div>
+                    
+                    {message.isRead || message.sender === user?.id ? (
+                      <p className="text-sm">{message.content}</p>
+                    ) : (
+                      <div className="text-center">
+                        <Lock className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+                        <p className="text-xs text-gray-400 mb-2">Face verification required</p>
+                        <button
+                          onClick={() => handleMessageRead(message)}
+                          className="bg-blue-500/20 text-blue-400 px-3 py-1 rounded text-xs hover:bg-blue-500/30 transition-colors duration-300"
+                        >
+                          Verify & Read
+                        </button>
+                      </div>
+                    )}
+                    
+                    <p className="text-xs opacity-70 mt-2">
+                      {message.timestamp.toLocaleTimeString()}
+                    </p>
+                  </div>
+                </div>
+              ))}
+              <div ref={messagesEndRef} />
+            </div>
+
+            {/* Message Input */}
+            <div className="bg-black/20 backdrop-blur-lg border-t border-white/10 p-6">
+              <div className="flex items-center space-x-4">
+                <div className="flex-1 relative">
+                  <input
+                    type="text"
+                    value={inputMessage}
+                    onChange={(e) => setInputMessage(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
+                    placeholder="Type a secure message..."
+                    className="w-full px-4 py-3 pr-12 bg-white/5 border border-white/10 rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-transparent text-white placeholder-gray-400 transition-all duration-300"
+                  />
+                  <Lock className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                </div>
+                
+                <button
+                  onClick={sendMessage}
+                  disabled={!inputMessage.trim()}
+                  className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-3 rounded-lg hover:from-blue-700 hover:to-purple-700 transform hover:scale-105 transition-all duration-300 shadow-lg shadow-blue-500/25 disabled:opacity-50 disabled:transform-none"
+                >
+                  <Send className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+          </>
+        ) : (
+          <div className="flex-1 flex items-center justify-center">
+            <div className="text-center">
+              <Shield className="w-16 h-16 text-blue-400 mx-auto mb-4 opacity-50" />
+              <h3 className="text-xl font-semibold text-white mb-2">Select a Contact</h3>
+              <p className="text-gray-400">Choose someone to start a secure conversation</p>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Face Verification Modal */}
+      {showFaceVerification && pendingMessage && (
+        <FaceVerificationModal
+          message={pendingMessage}
+          onSuccess={handleFaceVerificationSuccess}
+          onClose={() => {
+            setShowFaceVerification(false);
+            setPendingMessage(null);
+          }}
+        />
+      )}
+
+      {/* Live Camera Feed Modal */}
+      {isLiveCameraActive && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-black/20 backdrop-blur-lg rounded-2xl border border-white/10 p-6 max-w-md w-full mx-4">
+            <div className="text-center mb-4">
+              <h3 className="text-xl font-bold text-white mb-2">Live Camera Feed</h3>
+              <p className="text-gray-400 text-sm">Sharing camera with {getContactName(selectedContact)}</p>
+            </div>
+            
+            <div className="bg-black rounded-lg h-64 mb-4 flex items-center justify-center">
+              <Camera className="w-16 h-16 text-gray-400" />
+            </div>
+            
+            <div className="flex space-x-3">
+              <button
+                onClick={toggleLiveCamera}
+                className="flex-1 bg-red-500/20 text-red-400 py-2 px-4 rounded-lg hover:bg-red-500/30 transition-colors duration-300"
+              >
+                Stop Sharing
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default ChatInterface;
