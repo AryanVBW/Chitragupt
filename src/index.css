@@ -208,6 +208,15 @@
   }
 }
 
+@keyframes logo-continuous-rotate {
+  0% {
+    transform: perspective(1000px) rotateY(0deg) rotateX(0deg);
+  }
+  100% {
+    transform: perspective(1000px) rotateY(360deg) rotateX(360deg);
+  }
+}
+
 @keyframes logo-float {
   0%, 100% {
     transform: translateY(0px) scale(1);
@@ -251,10 +260,21 @@
 }
 
 .logo-3d-wrapper {
-  animation: logo-3d-rotate 8s linear infinite, logo-float 3s ease-in-out infinite;
   transform-style: preserve-3d;
   filter: drop-shadow(0 0 20px rgba(59, 130, 246, 0.5));
   transition: all 0.3s ease;
+}
+
+.logo-3d-wrapper.logo-3d-only {
+  animation: logo-3d-rotate 8s linear infinite, logo-float 3s ease-in-out infinite;
+}
+
+.logo-3d-wrapper.logo-continuous-only {
+  animation: logo-continuous-rotate 6s linear infinite, logo-float 3s ease-in-out infinite;
+}
+
+.logo-3d-wrapper.logo-both-animations {
+  animation: logo-3d-rotate 8s linear infinite, logo-continuous-rotate 12s linear infinite, logo-float 3s ease-in-out infinite;
 }
 
 .logo-3d-wrapper:hover {

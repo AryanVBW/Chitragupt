@@ -196,15 +196,36 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthSuccess }) => {
             )}
 
             {needsVerification && (
-              <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-4 mb-6">
-                <p className="text-green-400 text-sm mb-2">Registration successful! Please check your email for verification.</p>
-                <button
-                  onClick={handleResendVerification}
-                  disabled={isLoading}
-                  className="text-green-400 hover:text-green-300 text-sm underline"
-                >
-                  Resend verification email
-                </button>
+              <div className="bg-gradient-to-br from-green-500/10 via-emerald-500/10 to-teal-500/10 backdrop-blur-xl border border-green-500/30 rounded-2xl p-6 mb-6 shadow-2xl shadow-green-500/10">
+                <div className="flex items-center space-x-3 mb-4">
+                  <div className="p-3 bg-green-500/20 rounded-full backdrop-blur-sm">
+                    <Mail className="w-6 h-6 text-green-400" />
+                  </div>
+                  <div>
+                    <h3 className="text-green-400 font-semibold">Email Verification Required</h3>
+                    <p className="text-green-300/80 text-sm">Registration successful!</p>
+                  </div>
+                </div>
+                <p className="text-green-400/90 text-sm mb-4">Please check your email and click the verification link to activate your account.</p>
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <button
+                    onClick={() => window.open('https://gmail.com', '_blank')}
+                    className="flex items-center justify-center space-x-2 px-4 py-2 bg-gradient-to-r from-red-500/20 to-pink-500/20 hover:from-red-500/30 hover:to-pink-500/30 border border-red-500/30 rounded-lg text-red-400 hover:text-red-300 transition-all duration-300 backdrop-blur-sm shadow-lg shadow-red-500/10"
+                  >
+                    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M24 5.457v13.909c0 .904-.732 1.636-1.636 1.636h-3.819V11.73L12 16.64l-6.545-4.91v9.273H1.636A1.636 1.636 0 0 1 0 19.366V5.457c0-.904.732-1.636 1.636-1.636h3.819v.273L12 8.91l6.545-4.816v-.273h3.819c.904 0 1.636.732 1.636 1.636z"/>
+                    </svg>
+                    <span>Open Gmail</span>
+                  </button>
+                  <button
+                    onClick={handleResendVerification}
+                    disabled={isLoading}
+                    className="flex items-center justify-center space-x-2 px-4 py-2 bg-green-500/20 hover:bg-green-500/30 border border-green-500/30 rounded-lg text-green-400 hover:text-green-300 transition-all duration-300 backdrop-blur-sm shadow-lg shadow-green-500/10 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <Mail className="w-4 h-4" />
+                    <span>{isLoading ? 'Sending...' : 'Resend Email'}</span>
+                  </button>
+                </div>
               </div>
             )}
 

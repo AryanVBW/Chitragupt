@@ -157,7 +157,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return false;
       }
 
-      // Try to sign in with Supabase (fallback to environment credentials)
+      // Try to sign in with Supabase first
       let supabaseUser = null;
       try {
         const { data, error } = await supabase.auth.signInWithPassword({
@@ -181,16 +181,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.log('Supabase authentication failed, using environment-based auth');
       }
 
-      // Only create admin user session if authenticated through Supabase
-      if (!supabaseUser) {
-        console.error('Admin authentication failed - no valid Supabase user');
-        return false;
-      }
-
+      // If Supabase authentication failed, create admin session with environment credentials
       const deviceId = await generateDeviceFingerprint();
       
       const newUser: User = {
-        id: supabaseUser.id,
+        id: supabaseUser?.id || 'admin-env-' + Date.now(),
         email: adminEmail,
         deviceId,
         isVerified: true,

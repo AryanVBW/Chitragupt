@@ -3,9 +3,10 @@ import React from 'react';
 interface AnimatedLogoProps {
   size?: 'small' | 'medium' | 'large';
   className?: string;
+  rotationType?: '3d' | 'continuous' | 'both';
 }
 
-const AnimatedLogo: React.FC<AnimatedLogoProps> = ({ size = 'medium', className = '' }) => {
+const AnimatedLogo: React.FC<AnimatedLogoProps> = ({ size = 'medium', className = '', rotationType = 'both' }) => {
   const sizeClasses = {
     small: 'w-12 h-12',
     medium: 'w-16 h-16',
@@ -17,7 +18,11 @@ const AnimatedLogo: React.FC<AnimatedLogoProps> = ({ size = 'medium', className 
       {/* 3D Container */}
       <div className="logo-3d-container w-full h-full">
         {/* Main logo with 3D effects */}
-        <div className="logo-3d-wrapper relative w-full h-full">
+        <div className={`logo-3d-wrapper relative w-full h-full ${
+          rotationType === '3d' ? 'logo-3d-only' :
+          rotationType === 'continuous' ? 'logo-continuous-only' :
+          'logo-both-animations'
+        }`}>
           <img
             src="/logo.png"
             alt="Chitragupt Logo"
