@@ -6,11 +6,12 @@ import ChatInterface from './components/ChatInterface';
 import AdminPanel from './components/AdminPanel';
 import AdminDashboard from './components/AdminDashboard';
 import LoadingScreen from './components/LoadingScreen';
-import { Shield, MessageSquareText, Settings, Users, ShoppingCart } from 'lucide-react';
+import AdminSetup from './components/AdminSetup';
+import { Shield, MessageSquareText, Settings, Users, ShoppingCart, UserCog } from 'lucide-react';
 import LalThingStore from './components/LalThingStore';
 
 function App() {
-  const [currentView, setCurrentView] = useState<'auth' | 'chat' | 'admin' | 'dashboard' | 'store'>('auth');
+  const [currentView, setCurrentView] = useState<'auth' | 'chat' | 'admin' | 'dashboard' | 'store' | 'setup'>('auth');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -115,6 +116,16 @@ function App() {
                 <ShoppingCart className="w-5 h-5" />
               </button>
               <button
+                onClick={() => setCurrentView('setup')}
+                className={`p-2 rounded-lg transition-all duration-300 ${
+                  currentView === 'setup' 
+                    ? 'bg-orange-500/20 text-orange-400 shadow-lg shadow-orange-500/20' 
+                    : 'text-gray-400 hover:text-white hover:bg-white/5'
+                }`}
+              >
+                <UserCog className="w-5 h-5" />
+              </button>
+              <button
                 onClick={handleLogout}
                 className="px-4 py-2 bg-red-500/10 text-red-400 rounded-lg hover:bg-red-500/20 transition-all duration-300 border border-red-500/20"
               >
@@ -157,6 +168,10 @@ function App() {
               <AdminDashboard />
             ) : currentView === 'store' ? (
               <LalThingStore />
+            ) : currentView === 'setup' ? (
+              <div className="container mx-auto px-4 py-8">
+                <AdminSetup onAdminCreated={() => setCurrentView('dashboard')} />
+              </div>
             ) : (
               <ChatInterface />
             )}

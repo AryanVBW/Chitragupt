@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Lock, Camera, Shield, Eye, UserCheck } from 'lucide-react';
+import { Send, Lock, Camera, Shield, Eye, UserCheck, AlertTriangle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import FaceVerificationModal from './FaceVerificationModal';
+import FaceVerification from './FaceVerification';
+import { useFaceVerification } from '../hooks/useFaceVerification';
 
 interface Message {
   id: string;
@@ -19,10 +20,14 @@ const ChatInterface: React.FC = () => {
   const [inputMessage, setInputMessage] = useState('');
   const [selectedContact, setSelectedContact] = useState<string>('');
   const [showFaceVerification, setShowFaceVerification] = useState(false);
+  const [showFaceSetup, setShowFaceSetup] = useState(false);
   const [pendingMessage, setPendingMessage] = useState<Message | null>(null);
   const [isLiveCameraActive, setIsLiveCameraActive] = useState(false);
+  const [faceVerificationRequired, setFaceVerificationRequired] = useState(true);
+  const [lastVerificationTime, setLastVerificationTime] = useState<Date | null>(null);
   const { user, verifyFace } = useAuth();
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const faceVerification = useFaceVerification();
 
   const contacts = [
     { id: 'contact1', name: 'Alice Johnson', status: 'online', avatar: '👩‍💼' },
@@ -34,6 +39,37 @@ const ChatInterface: React.FC = () => {
     // Auto-scroll to bottom when new messages arrive
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  useEffect(() => {
+    // Check if user has face verification enabled
+    if (user) {
+      faceVerification.checkFaceVerificationStatus().then(hasStoredFace => {
+        if (!hasStoredFace) {
+          setShowFaceSetup(true);
+        }
+      });
+    }
+  }, [user, faceVerification]);
+
+  useEffect(() => {
+    // Start real-time face verification when chat is active
+    if (selectedContact && faceVerification.state.hasStoredFace) {
+      faceVerification.initializeCamera().then(() => {
+        faceVerification.startRealTimeVerification((result) => {
+          if (result.isMatch) {
+            setLastVerificationTime(new Date());
+            setFaceVerificationRequired(false);
+          } else {
+            setFaceVerificationRequired(true);
+          }
+        });
+      });
+    }
+
+    return () => {
+      faceVerification.stopRealTimeVerification();
+    };
+  }, [selectedContact, faceVerification]);
 
   useEffect(() => {
     // Simulate receiving encrypted messages
@@ -63,6 +99,13 @@ const ChatInterface: React.FC = () => {
   const sendMessage = async () => {
     if (!inputMessage.trim() || !selectedContact) return;
 
+    // Check if face verification is required and valid
+    if (faceVerificationRequired || !lastVerificationTime || 
+        (Date.now() - lastVerificationTime.getTime()) > 300000) { // 5 minutes
+      setShowFaceVerification(true);
+      return;
+    }
+
     const newMessage: Message = {
       id: Date.now().toString(),
       content: inputMessage,
@@ -70,7 +113,8 @@ const ChatInterface: React.FC = () => {
       timestamp: new Date(),
       isEncrypted: true,
       requiresFaceVerification: true,
-      isRead: false
+      isRead: false,
+      senderApproval: true // Verified by face recognition
     };
 
     setMessages(prev => [...prev, newMessage]);
@@ -92,7 +136,11 @@ const ChatInterface: React.FC = () => {
     }
   };
 
-  const handleFaceVerificationSuccess = async (faceData: string) => {
+  const handleFaceVerificationSuccess = () => {
+    setShowFaceVerification(false);
+    setFaceVerificationRequired(false);
+    setLastVerificationTime(new Date());
+    
     if (pendingMessage) {
       // Mark message as read
       setMessages(prev => 
@@ -104,8 +152,17 @@ const ChatInterface: React.FC = () => {
       );
       setPendingMessage(null);
     }
-    setShowFaceVerification(false);
-  };
+    
+    // Retry sending message if it was blocked
+     if (inputMessage.trim()) {
+       sendMessage();
+     }
+   };
+
+   const handleFaceSetupSuccess = () => {
+     setShowFaceSetup(false);
+     faceVerification.checkFaceVerificationStatus();
+   };
 
   const toggleLiveCamera = () => {
     setIsLiveCameraActive(!isLiveCameraActive);
@@ -186,9 +243,22 @@ const ChatInterface: React.FC = () => {
                   >
                     <Camera className="w-5 h-5" />
                   </button>
-                  <div className="text-green-400">
-                    <UserCheck className="w-5 h-5" />
-                  </div>
+                  
+                  {faceVerificationRequired && (
+                    <div className="flex items-center space-x-1 text-yellow-400">
+                      <AlertTriangle className="w-4 h-4" />
+                      <span className="text-xs">Verification Required</span>
+                    </div>
+                  )}
+                  
+                  {lastVerificationTime && (
+                    <div className="flex items-center space-x-1 text-green-400">
+                      <UserCheck className="w-4 h-4" />
+                      <span className="text-xs">
+                        Verified {Math.floor((Date.now() - lastVerificationTime.getTime()) / 60000)}m ago
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -277,14 +347,27 @@ const ChatInterface: React.FC = () => {
       </div>
 
       {/* Face Verification Modal */}
-      {showFaceVerification && pendingMessage && (
-        <FaceVerificationModal
-          message={pendingMessage}
+      {showFaceVerification && (
+        <FaceVerification
+          mode="verify"
           onSuccess={handleFaceVerificationSuccess}
-          onClose={() => {
-            setShowFaceVerification(false);
-            setPendingMessage(null);
-          }}
+          onFailure={(error: string) => {
+             console.error('Face verification failed:', error);
+             setShowFaceVerification(false);
+           }}
+          onCancel={() => setShowFaceVerification(false)}
+        />
+      )}
+      
+      {showFaceSetup && (
+        <FaceVerification
+          mode="setup"
+          onSuccess={handleFaceSetupSuccess}
+          onFailure={(error: string) => {
+             console.error('Face setup failed:', error);
+             setShowFaceSetup(false);
+           }}
+          onCancel={() => setShowFaceSetup(false)}
         />
       )}
 
