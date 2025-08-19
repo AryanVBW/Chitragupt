@@ -136,42 +136,7 @@ export const AdminSetup: React.FC<AdminSetupProps> = ({ onAdminCreated }) => {
     }
   };
 
-  const testAdminLogin = async () => {
-    if (!password) {
-      setMessage('Please enter the admin password to test login');
-      setMessageType('error');
-      return;
-    }
 
-    setLoading(true);
-    setMessage('Testing admin login...');
-    setMessageType('info');
-
-    try {
-      const { data, error } = await signIn(email, password);
-      
-      if (error) {
-        throw error;
-      }
-
-      const { data: profile } = await getUserProfile();
-      
-      if (profile?.is_admin) {
-        setMessage('Admin login successful! You are now authenticated as an administrator.');
-        setMessageType('success');
-        onAdminCreated();
-      } else {
-        setMessage('Login successful but user is not an administrator.');
-        setMessageType('error');
-      }
-    } catch (error: any) {
-      console.error('Error testing admin login:', error);
-      setMessage(`Login failed: ${error.message}`);
-      setMessageType('error');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   return (
     <div className="max-w-md mx-auto bg-white rounded-lg shadow-lg p-6">
@@ -183,7 +148,7 @@ export const AdminSetup: React.FC<AdminSetupProps> = ({ onAdminCreated }) => {
         </p>
         {!adminExists && (
           <p className="text-yellow-600 text-sm mt-2">
-            💡 Default password is pre-filled from environment variables (VITE_ADMIN_PASSWORD)
+            💡 Default password is pre-filled from environment variables (VITE_ADMIN_PASSWORD_HASH)
           </p>
         )}
       </div>
@@ -233,19 +198,21 @@ export const AdminSetup: React.FC<AdminSetupProps> = ({ onAdminCreated }) => {
           />
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            <Lock className="inline h-4 w-4 mr-1" />
-            Password
-          </label>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder={adminExists ? "Enter password to test login" : "Enter admin password"}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          />
-        </div>
+        {!adminExists && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              <Lock className="inline h-4 w-4 mr-1" />
+              Password
+            </label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Enter admin password"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+        )}
 
         {!adminExists && (
           <div>
@@ -263,25 +230,22 @@ export const AdminSetup: React.FC<AdminSetupProps> = ({ onAdminCreated }) => {
           </div>
         )}
 
-        <button
-          onClick={adminExists ? testAdminLogin : createAdminAccount}
-          disabled={loading || (!adminExists && (!password || !confirmPassword))}
-          className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
-        >
-          {loading ? (
-            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-          ) : adminExists ? (
-            <>
-              <Shield className="h-4 w-4 mr-2" />
-              Test Admin Login
-            </>
-          ) : (
-            <>
-              <User className="h-4 w-4 mr-2" />
-              Create Admin Account
-            </>
-          )}
-        </button>
+        {!adminExists && (
+          <button
+            onClick={createAdminAccount}
+            disabled={loading || !password || !confirmPassword}
+            className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+          >
+            {loading ? (
+              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+            ) : (
+              <>
+                <User className="h-4 w-4 mr-2" />
+                Create Admin Account
+              </>
+            )}
+          </button>
+        )}
         
         <button
           onClick={handleRunMigration}
@@ -312,7 +276,6 @@ export const AdminSetup: React.FC<AdminSetupProps> = ({ onAdminCreated }) => {
         <ul className="mt-2 space-y-1">
           <li>• User management and monitoring</li>
           <li>• Chat message oversight</li>
-          <li>• Lal Thing Store product management</li>
           <li>• System notifications and alerts</li>
         </ul>
       </div>

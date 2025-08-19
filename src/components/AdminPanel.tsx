@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { Users, Bell, Camera, Shield, Activity, Settings, Send } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Users, Bell, Camera, Shield, Activity, Settings, Send, Trash2, UserPlus, CheckCircle, XCircle, UserX } from 'lucide-react';
+import { supabase } from '../lib/supabase';
 
 interface User {
   id: string;
@@ -22,6 +23,10 @@ const AdminPanel: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'users' | 'notifications' | 'monitoring' | 'settings'>('users');
   const [selectedUser, setSelectedUser] = useState<string>('');
   const [showCameraFeed, setShowCameraFeed] = useState(false);
+  const [showCreateUser, setShowCreateUser] = useState(false);
+  const [newUser, setNewUser] = useState({ name: '', email: '', password: '' });
+  const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(false);
   const [notification, setNotification] = useState<NotificationData>({
     title: '',
     message: '',
@@ -29,36 +34,170 @@ const AdminPanel: React.FC = () => {
     priority: 'medium'
   });
 
-  // Mock data
-  const users: User[] = [
-    {
-      id: '1',
-      email: 'alice.johnson@company.com',
-      name: 'Alice Johnson',
-      status: 'online',
-      lastActive: new Date(),
-      deviceCount: 2,
-      verificationStatus: 'verified'
-    },
-    {
-      id: '2',
-      email: 'bob.smith@company.com',
-      name: 'Bob Smith',
-      status: 'away',
-      lastActive: new Date(Date.now() - 900000),
-      deviceCount: 1,
-      verificationStatus: 'verified'
-    },
-    {
-      id: '3',
-      email: 'carol.davis@company.com',
-      name: 'Carol Davis',
-      status: 'offline',
-      lastActive: new Date(Date.now() - 3600000),
-      deviceCount: 3,
-      verificationStatus: 'pending'
+  // User management functions
+  const deleteUser = async (userId: string) => {
+    if (window.confirm('Are you sure you want to delete this user?')) {
+      try {
+        const { error } = await supabase
+          .from('users')
+          .delete()
+          .eq('id', userId);
+
+        if (error) {
+          console.error('Error deleting user:', error);
+          alert('Failed to delete user. Please try again.');
+        } else {
+          // Remove user from local state
+          setUsers(users.filter(u => u.id !== userId));
+          alert('User deleted successfully.');
+        }
+      } catch (error) {
+        console.error('Error deleting user:', error);
+        alert('Failed to delete user. Please try again.');
+      }
     }
-  ];
+  };
+
+  const verifyUser = async (userId: string) => {
+    try {
+      const { error } = await supabase
+        .from('users')
+        .update({ is_verified: true })
+        .eq('id', userId);
+
+      if (error) {
+        console.error('Error verifying user:', error);
+        alert('Failed to verify user. Please try again.');
+      } else {
+        // Update user in local state
+        setUsers(users.map(u => 
+          u.id === userId ? { ...u, verificationStatus: 'verified' } : u
+        ));
+        alert('User verified successfully.');
+      }
+    } catch (error) {
+      console.error('Error verifying user:', error);
+      alert('Failed to verify user. Please try again.');
+    }
+  };
+
+  const unverifyUser = async (userId: string) => {
+    try {
+      const { error } = await supabase
+        .from('users')
+        .update({ is_verified: false })
+        .eq('id', userId);
+
+      if (error) {
+        console.error('Error unverifying user:', error);
+        alert('Failed to unverify user. Please try again.');
+      } else {
+        // Update user in local state
+        setUsers(users.map(u => 
+          u.id === userId ? { ...u, verificationStatus: 'pending' } : u
+        ));
+        alert('User unverified successfully.');
+      }
+    } catch (error) {
+      console.error('Error unverifying user:', error);
+      alert('Failed to unverify user. Please try again.');
+    }
+  };
+
+  const createUser = async () => {
+    if (newUser.name && newUser.email && newUser.password) {
+      try {
+        // Create user in Supabase Auth
+        const { data, error } = await supabase.auth.signUp({
+          email: newUser.email,
+          password: newUser.password,
+          options: {
+            data: {
+              full_name: newUser.name
+            }
+          }
+        });
+
+        if (error) {
+          console.error('Error creating user:', error);
+          alert('Failed to create user. Please try again.');
+          return;
+        }
+
+        // Reset form and close modal
+        setNewUser({ name: '', email: '', password: '' });
+        setShowCreateUser(false);
+        alert('User created successfully. They will receive a verification email.');
+        
+        // Refresh user list
+        fetchUsers();
+      } catch (error) {
+        console.error('Error creating user:', error);
+        alert('Failed to create user. Please try again.');
+      }
+    }
+  };
+
+  const removeUnverifiedUsers = async () => {
+    if (window.confirm('Are you sure you want to remove all unverified users? This action cannot be undone.')) {
+      try {
+        // Delete all users who are not verified by Supabase
+        const { error } = await supabase
+          .from('users')
+          .delete()
+          .eq('is_verified', false);
+
+        if (error) {
+          console.error('Error removing unverified users:', error);
+          alert('Failed to remove unverified users. Please try again.');
+        } else {
+          alert('Successfully removed all unverified users.');
+          // Refresh the user list
+          fetchUsers();
+        }
+      } catch (error) {
+        console.error('Error removing unverified users:', error);
+        alert('Failed to remove unverified users. Please try again.');
+      }
+    }
+  };
+
+  // Fetch real users from Supabase
+  const fetchUsers = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('users')
+        .select('id, email, full_name, is_verified, is_admin, created_at, updated_at')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching users:', error);
+        return;
+      }
+
+      // Transform Supabase data to match our User interface
+      const transformedUsers: User[] = data.map(user => ({
+        id: user.id,
+        email: user.email,
+        name: user.full_name || user.email.split('@')[0],
+        status: 'offline' as const, // We don't track real-time status yet
+        lastActive: new Date(user.updated_at || user.created_at),
+        deviceCount: 1, // Default value, could be enhanced later
+        verificationStatus: user.is_verified ? 'verified' as const : 'pending' as const
+      }));
+
+      setUsers(transformedUsers);
+    } catch (error) {
+      console.error('Error fetching users:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchUsers();
+  }, []);
 
   const handleSendNotification = async () => {
     if (!notification.title || !notification.message) return;
@@ -127,10 +266,38 @@ const AdminPanel: React.FC = () => {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Users List */}
             <div className="lg:col-span-2 bg-black/20 backdrop-blur-lg rounded-2xl border border-white/10 p-6">
-              <h2 className="text-xl font-bold text-white mb-6">Active Users</h2>
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-bold text-white">Active Users</h2>
+                <div className="flex items-center space-x-3">
+                  <button
+                    onClick={removeUnverifiedUsers}
+                    className="flex items-center space-x-2 bg-red-500/20 text-red-400 px-4 py-2 rounded-lg hover:bg-red-500/30 transition-colors duration-300"
+                  >
+                    <UserX className="w-4 h-4" />
+                    <span>Remove Unverified</span>
+                  </button>
+                  <button
+                    onClick={() => setShowCreateUser(true)}
+                    className="flex items-center space-x-2 bg-green-500/20 text-green-400 px-4 py-2 rounded-lg hover:bg-green-500/30 transition-colors duration-300"
+                  >
+                    <UserPlus className="w-4 h-4" />
+                    <span>Add User</span>
+                  </button>
+                </div>
+              </div>
               
               <div className="space-y-4">
-                {users.map(user => (
+                {loading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-400"></div>
+                    <span className="ml-3 text-gray-400">Loading users...</span>
+                  </div>
+                ) : users.length === 0 ? (
+                  <div className="text-center py-8 text-gray-400">
+                    No users found.
+                  </div>
+                ) : (
+                  users.map(user => (
                   <div key={user.id} className="bg-white/5 rounded-lg p-4 border border-white/10">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-4">
@@ -172,13 +339,36 @@ const AdminPanel: React.FC = () => {
                         >
                           <Camera className="w-4 h-4" />
                         </button>
-                        <button className="p-2 bg-purple-500/20 text-purple-400 rounded-lg hover:bg-purple-500/30 transition-colors duration-300">
-                          <Shield className="w-4 h-4" />
+                        {user.verificationStatus === 'pending' && (
+                          <button
+                            onClick={() => verifyUser(user.id)}
+                            className="p-2 bg-green-500/20 text-green-400 rounded-lg hover:bg-green-500/30 transition-colors duration-300"
+                            title="Verify user"
+                          >
+                            <CheckCircle className="w-4 h-4" />
+                          </button>
+                        )}
+                        {user.verificationStatus === 'verified' && (
+                          <button
+                            onClick={() => unverifyUser(user.id)}
+                            className="p-2 bg-yellow-500/20 text-yellow-400 rounded-lg hover:bg-yellow-500/30 transition-colors duration-300"
+                            title="Unverify user"
+                          >
+                            <XCircle className="w-4 h-4" />
+                          </button>
+                        )}
+                        <button
+                          onClick={() => deleteUser(user.id)}
+                          className="p-2 bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500/30 transition-colors duration-300"
+                          title="Delete user"
+                        >
+                          <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
                     </div>
                   </div>
-                ))}
+                  ))
+                )}
               </div>
             </div>
 
@@ -425,6 +615,73 @@ const AdminPanel: React.FC = () => {
                     </div>
                   </div>
                 </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Create User Modal */}
+        {showCreateUser && (
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-black/20 backdrop-blur-lg rounded-2xl border border-white/10 p-6 max-w-md w-full">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-bold text-white">Create New User</h3>
+                <button
+                  onClick={() => setShowCreateUser(false)}
+                  className="text-gray-400 hover:text-white p-2 rounded-lg hover:bg-white/10 transition-colors duration-300"
+                >
+                  ✕
+                </button>
+              </div>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Full Name</label>
+                  <input
+                    type="text"
+                    value={newUser.name}
+                    onChange={(e) => setNewUser(prev => ({ ...prev, name: e.target.value }))}
+                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg focus:ring-2 focus:ring-green-400 focus:border-transparent text-white placeholder-gray-400"
+                    placeholder="Enter full name"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Email Address</label>
+                  <input
+                    type="email"
+                    value={newUser.email}
+                    onChange={(e) => setNewUser(prev => ({ ...prev, email: e.target.value }))}
+                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg focus:ring-2 focus:ring-green-400 focus:border-transparent text-white placeholder-gray-400"
+                    placeholder="Enter email address"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Password</label>
+                  <input
+                    type="password"
+                    value={newUser.password}
+                    onChange={(e) => setNewUser(prev => ({ ...prev, password: e.target.value }))}
+                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg focus:ring-2 focus:ring-green-400 focus:border-transparent text-white placeholder-gray-400"
+                    placeholder="Enter password"
+                  />
+                </div>
+              </div>
+              
+              <div className="flex space-x-3 mt-6">
+                <button
+                  onClick={() => setShowCreateUser(false)}
+                  className="flex-1 bg-gray-500/20 text-gray-400 py-2 px-4 rounded-lg hover:bg-gray-500/30 transition-colors duration-300"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={createUser}
+                  className="flex-1 bg-green-500/20 text-green-400 py-2 px-4 rounded-lg hover:bg-green-500/30 transition-colors duration-300"
+                >
+                  Create User
+                </button>
               </div>
             </div>
           </div>

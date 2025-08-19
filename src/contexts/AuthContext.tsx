@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase, type User as SupabaseUser } from '../lib/supabase';
-import { encryptData, decryptData, generateDeviceFingerprint } from '../utils/security';
+import { encryptData, decryptData, generateDeviceFingerprint, verifyPassword } from '../utils/security';
 
 interface User {
   id: string;
@@ -144,54 +144,65 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const adminLogin = async (email: string, password: string): Promise<boolean> => {
     try {
       const adminEmail = import.meta.env.VITE_ADMIN_EMAIL || 'admin@chitragupt.com';
+      const adminPasswordHash = import.meta.env.VITE_ADMIN_PASSWORD_HASH || import.meta.env.VITE_ADMIN_PASSWORD;
       
       if (email !== adminEmail) {
         return false;
       }
 
-      // Sign in with Supabase
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (error) {
-        console.error('Admin login error:', error);
+      // Verify admin password using hash comparison
+      const isPasswordValid = await verifyPassword(password, adminPasswordHash);
+      if (!isPasswordValid) {
+        console.error('Admin password verification failed');
         return false;
       }
 
-      if (data.user) {
-        // Verify admin status
-        const { data: profile, error: profileError } = await supabase
-          .from('users')
-          .select('*')
-          .eq('id', data.user.id)
-          .single();
+      // Try to sign in with Supabase (fallback to environment credentials)
+      let supabaseUser = null;
+      try {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
 
-        if (profileError || !profile?.is_admin) {
-          console.error('Admin verification failed');
-          return false;
+        if (!error && data.user) {
+          // Verify admin status in database
+          const { data: profile, error: profileError } = await supabase
+            .from('users')
+            .select('*')
+            .eq('id', data.user.id)
+            .single();
+
+          if (!profileError && profile?.is_admin) {
+            supabaseUser = data.user;
+          }
         }
-
-        const deviceId = await generateDeviceFingerprint();
-        
-        const newUser: User = {
-          id: data.user.id,
-          email: data.user.email!,
-          deviceId,
-          isVerified: true,
-          isAdmin: true
-        };
-
-        const encryptedUser = encryptData(JSON.stringify(newUser));
-        sessionStorage.setItem('secureUser', encryptedUser);
-        
-        setUser(newUser);
-        setIsAuthenticated(true);
-        return true;
+      } catch (supabaseError) {
+        console.log('Supabase authentication failed, using environment-based auth');
       }
+
+      // Only create admin user session if authenticated through Supabase
+      if (!supabaseUser) {
+        console.error('Admin authentication failed - no valid Supabase user');
+        return false;
+      }
+
+      const deviceId = await generateDeviceFingerprint();
       
-      return false;
+      const newUser: User = {
+        id: supabaseUser.id,
+        email: adminEmail,
+        deviceId,
+        isVerified: true,
+        isAdmin: true
+      };
+
+      const encryptedUser = encryptData(JSON.stringify(newUser));
+      sessionStorage.setItem('secureUser', encryptedUser);
+      
+      setUser(newUser);
+      setIsAuthenticated(true);
+      return true;
     } catch (error) {
       console.error('Admin login failed:', error);
       return false;

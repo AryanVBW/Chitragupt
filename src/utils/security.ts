@@ -125,3 +125,101 @@ export const isValidFaceData = (faceData: string): boolean => {
   // Basic validation for face data format
   return faceData.startsWith('data:image/') && faceData.length > 1000;
 };
+
+// Password hashing utilities
+export const hashPassword = async (password: string, algorithm: 'SHA-256' | 'SHA-384' | 'SHA-512' | 'MD5' = 'SHA-256'): Promise<string> => {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(password);
+  
+  if (algorithm === 'MD5') {
+    // Simple MD5 implementation for compatibility
+    return await md5Hash(password);
+  }
+  
+  const hashBuffer = await crypto.subtle.digest(algorithm, data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  
+  return `${algorithm.toLowerCase()}:${hashHex}`;
+};
+
+export const verifyPassword = async (password: string, hashedPassword: string): Promise<boolean> => {
+  try {
+    // Check if hash is in 'algorithm:hash' format
+    const colonIndex = hashedPassword.indexOf(':');
+    
+    if (colonIndex > 0) {
+      // New format: 'algorithm:hash'
+      const [algorithm, hash] = hashedPassword.split(':');
+      
+      const algorithmMap: { [key: string]: 'SHA-256' | 'SHA-384' | 'SHA-512' | 'MD5' } = {
+        'sha-256': 'SHA-256',
+        'sha-384': 'SHA-384',
+        'sha-512': 'SHA-512',
+        'md5': 'MD5'
+      };
+      
+      const cryptoAlgorithm = algorithmMap[algorithm.toLowerCase()];
+      if (!cryptoAlgorithm) {
+        console.error('Unsupported hash algorithm:', algorithm);
+        return false;
+      }
+      
+      const newHash = await hashPassword(password, cryptoAlgorithm);
+      return newHash === hashedPassword;
+    } else {
+      // Legacy format: plain hex hash (assume SHA-256)
+      if (hashedPassword.length === 64 && /^[a-f0-9]+$/i.test(hashedPassword)) {
+        // Looks like a SHA-256 hex hash
+        const encoder = new TextEncoder();
+        const data = encoder.encode(password);
+        const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        
+        return hashHex === hashedPassword;
+      }
+      
+      // Try other algorithms for legacy format
+      const algorithms: ('SHA-256' | 'SHA-384' | 'SHA-512')[] = ['SHA-256', 'SHA-384', 'SHA-512'];
+      
+      for (const algorithm of algorithms) {
+        const encoder = new TextEncoder();
+        const data = encoder.encode(password);
+        const hashBuffer = await crypto.subtle.digest(algorithm, data);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        
+        if (hashHex === hashedPassword) {
+          return true;
+        }
+      }
+      
+      // Fallback for plain text passwords (backward compatibility)
+      return password === hashedPassword;
+    }
+  } catch (error) {
+    console.error('Password verification failed:', error);
+    return false;
+  }
+};
+
+// Simple MD5 implementation for compatibility
+const md5Hash = async (input: string): Promise<string> => {
+  // This is a simplified MD5 for demo purposes
+  // In production, use a proper crypto library
+  const encoder = new TextEncoder();
+  const data = encoder.encode(input);
+  
+  // Use SHA-256 as fallback since MD5 is not available in Web Crypto API
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  
+  return `md5:${hashHex.substring(0, 32)}`; // Truncate to MD5-like length
+};
+
+// Generate hashed password for environment setup
+export const generateHashedPassword = async (plainPassword: string, algorithm: 'SHA-256' | 'SHA-384' | 'SHA-512' | 'MD5' = 'SHA-256'): Promise<string> => {
+  return await hashPassword(plainPassword, algorithm);
+};

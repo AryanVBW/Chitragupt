@@ -2,6 +2,7 @@ import React, { useState, useRef, useCallback } from 'react';
 import { Camera, Key, Shield, Eye, EyeOff, Scan, Mail, UserPlus, LogIn } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import FaceCapture from './FaceCapture';
+import AnimatedLogo from './AnimatedLogo';
 
 interface AuthScreenProps {
   onAuthSuccess: () => void;
@@ -132,8 +133,8 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthSuccess }) => {
         <div className="max-w-md w-full">
           <div className="bg-black/20 backdrop-blur-lg rounded-2xl border border-white/10 p-8 shadow-2xl">
             <div className="text-center mb-8">
-              <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-500/10 rounded-full mb-4">
-                <Shield className="w-8 h-8 text-blue-400" />
+              <div className="inline-flex items-center justify-center mb-4">
+                <AnimatedLogo size="large" />
               </div>
               <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent mb-2">
                 Chitragupt

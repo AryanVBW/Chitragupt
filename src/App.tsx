@@ -7,8 +7,8 @@ import AdminPanel from './components/AdminPanel';
 import AdminDashboard from './components/AdminDashboard';
 import LoadingScreen from './components/LoadingScreen';
 import AdminSetup from './components/AdminSetup';
-import { Shield, MessageSquareText, Settings, Users, ShoppingCart, UserCog } from 'lucide-react';
-import LalThingStore from './components/LalThingStore';
+import AnimatedLogo from './components/AnimatedLogo';
+import { Shield, MessageSquareText, Settings, Users, UserCog } from 'lucide-react';
 
 function App() {
   const [currentView, setCurrentView] = useState<'auth' | 'chat' | 'admin' | 'dashboard' | 'store' | 'setup'>('auth');
@@ -66,7 +66,7 @@ function App() {
         <div className="flex justify-between h-16">
           <div className="flex items-center space-x-4">
             <div className="flex items-center space-x-2">
-              <Shield className="w-8 h-8 text-blue-400" />
+              <AnimatedLogo size="small" />
               <span className="text-xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
                 Chitragupt
               </span>
@@ -105,16 +105,7 @@ function App() {
               >
                 <Users className="w-5 h-5" />
               </button>
-              <button
-                onClick={() => setCurrentView('store')}
-                className={`p-2 rounded-lg transition-all duration-300 ${
-                  currentView === 'store' 
-                    ? 'bg-red-500/20 text-red-400 shadow-lg shadow-red-500/20' 
-                    : 'text-gray-400 hover:text-white hover:bg-white/5'
-                }`}
-              >
-                <ShoppingCart className="w-5 h-5" />
-              </button>
+
               <button
                 onClick={() => setCurrentView('setup')}
                 className={`p-2 rounded-lg transition-all duration-300 ${
@@ -155,9 +146,9 @@ function App() {
             </div>
           </div>
 
-          <NavBar />
+          {isAuthenticated && <NavBar />}
           
-          <main className="pt-16 relative z-10">
+          <main className={`${isAuthenticated ? 'pt-16' : 'pt-0'} relative z-10`}>
             {!isAuthenticated ? (
               <AuthScreen onAuthSuccess={handleAuthSuccess} />
             ) : currentView === 'chat' ? (
@@ -166,8 +157,7 @@ function App() {
               <AdminPanel />
             ) : currentView === 'dashboard' ? (
               <AdminDashboard />
-            ) : currentView === 'store' ? (
-              <LalThingStore />
+
             ) : currentView === 'setup' ? (
               <div className="container mx-auto px-4 py-8">
                 <AdminSetup onAdminCreated={() => setCurrentView('dashboard')} />
